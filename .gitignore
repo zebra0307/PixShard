@@ -1,8 +1,8 @@
-# ────────────────────────────────────────────────
-#  PixShard — Root .gitignore
-# ────────────────────────────────────────────────
+# ─────────────────────────────────────────────────
+#  PixShard — .gitignore
+# ─────────────────────────────────────────────────
 
-# ── OS / Editor ─────────────────────────────────
+# ── OS / Editor ──────────────────────────────────
 .DS_Store
 Thumbs.db
 desktop.ini
@@ -11,58 +11,46 @@ desktop.ini
 .idea/
 .vscode/settings.json
 
-# ── Node ────────────────────────────────────────
+# ── Node ─────────────────────────────────────────
 node_modules/
 npm-debug.log*
 yarn-debug.log*
-yarn-error.log*
 package-lock.json
 
-# ── React build output ──────────────────────────
+# ── React build output (Vercel builds this itself)
 client/dist/
 client/.env.local
 
-# KEEP client/.env.production (contains VITE_API_BASE_URL — no secrets)
-
-# ── Express API: secrets & runtime data ─────────
+# ── API secrets & runtime-generated data ─────────
 api/.env
 api/.env.local
-
-# Multer temp / generated share files (large, runtime only)
 api/uploads/
 api/images/
 api/public_datas/
 
-# Firebase service account key (NEVER commit — contains private key)
+# Firebase service account key (contains private key — NEVER commit)
 api/serviceAccountKey.json
 **/serviceAccountKey*.json
 
-# ── Firebase CLI cache ───────────────────────────
+# ── Firebase CLI (no longer used — using Vercel) ─
 .firebase/
+firebase.json
+.firebaserc
 
-# ── Python ──────────────────────────────────────
+# ── Python ───────────────────────────────────────
 __pycache__/
 *.py[cod]
 *.pyo
-*.pyd
-.Python
-*.egg-info/
 .venv/
 venv/
 env/
 
-# Binary share files (large NumPy arrays)
+# ── NumPy binary share files ─────────────────────
 *.npy
 *.npz
 
-# ── Logs ────────────────────────────────────────
-logs/
+# ── Logs & archives ──────────────────────────────
 *.log
-
-# ── Archives ────────────────────────────────────
+logs/
 *.zip
 *.tar.gz
-
-# ── Test / scratch ───────────────────────────────
-/tmp/
-scratch/
