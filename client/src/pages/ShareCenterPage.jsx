@@ -5,6 +5,9 @@ import api from '../api/axiosConfig';
 import toast from 'react-hot-toast';
 import { Download, FileArchive, File, ArrowLeft, Database } from 'lucide-react';
 
+// Resolve API base: use env var in production, empty string in dev (Vite proxy handles it)
+const API_BASE = import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || '';
+
 const FileRow = ({ name, projectId, type, index }) => (
   <motion.div
     initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
@@ -18,7 +21,7 @@ const FileRow = ({ name, projectId, type, index }) => (
       </span>
     </div>
     <a
-      href={`/api/share/download-file/${projectId}/${name}`}
+      href={`${API_BASE}/api/share/download-file/${projectId}/${name}`}
       download={name}
       className="btn-secondary"
       style={{ fontSize: '0.75rem', padding: '0.3rem 0.75rem', flexShrink: 0 }}
@@ -45,8 +48,8 @@ export default function ShareCenterPage() {
 
   const downloadZip = (type) => {
     const url = type === 'shares'
-      ? `/api/share/download-shares/${id}`
-      : `/api/share/download-public/${id}`;
+      ? `${API_BASE}/api/share/download-shares/${id}`
+      : `${API_BASE}/api/share/download-public/${id}`;
     window.open(url, '_blank');
   };
 
