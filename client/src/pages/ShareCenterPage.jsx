@@ -8,36 +8,71 @@ import { Download, FileArchive, File, ArrowLeft, Database } from 'lucide-react';
 // Resolve API base: use env var in production, empty string in dev (Vite proxy handles it)
 const API_BASE = import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || '';
 
-const FileRow = ({ name, projectId, type, index }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-    transition={{ delay: index * 0.04 }}
-    className="file-row"
-  >
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', minWidth: 0 }}>
-      <File size={13} color={type === 'share' ? 'var(--color-secondary)' : 'var(--color-primary)'} style={{ flexShrink: 0 }} />
-      <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-        {name}
-      </span>
-    </div>
-    <a
-      href={`${API_BASE}/api/share/download-file/${projectId}/${name}`}
-      download={name}
-      className="btn-secondary"
-      style={{ fontSize: '0.75rem', padding: '0.3rem 0.75rem', flexShrink: 0 }}
-      aria-label={`Download ${name}`}
-    >
-      <Download size={11} /> Download
-    </a>
-  </motion.div>
-);
+// ── Authenticated blob download ─────────────────────────────────────────────
+// Uses axios so the Firebase token is sent automatically via the request interceptor.
+// Plain <a href> / window.open cannot attach the Authorization header.
+const authDownload = async (url, filename) => {
+  try {
+    const { data } = await api.get(url, { responseType: 'blob' });
+    const blobUrl = URL.createObjectURL(data);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+  } catch {
+    toast.error('Download failed — please try again');
+  }
+};
 
+// ── File row ────────────────────────────────────────────────────────────────
+const FileRow = ({ name, projectId, type, index }) => {
+  const [loading, setLoading] = useState(false);
+
+  const handleDownload = async () => {
+    setLoading(true);
+    await authDownload(`/api/share/download-file/${projectId}/${name}`, name);
+    setLoading(false);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.04 }}
+      className="file-row"
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', minWidth: 0 }}>
+        <File size={13} color={type === 'share' ? 'var(--color-secondary)' : 'var(--color-primary)'} style={{ flexShrink: 0 }} />
+        <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {name}
+        </span>
+      </div>
+      <button
+        onClick={handleDownload}
+        disabled={loading}
+        className="btn-secondary"
+        style={{ fontSize: '0.75rem', padding: '0.3rem 0.75rem', flexShrink: 0, opacity: loading ? 0.6 : 1 }}
+        aria-label={`Download ${name}`}
+      >
+        {loading
+          ? <span className="spinner" style={{ width: 11, height: 11, borderWidth: 1.5 }} />
+          : <><Download size={11} /> Download</>
+        }
+      </button>
+    </motion.div>
+  );
+};
+
+// ── Page ────────────────────────────────────────────────────────────────────
 export default function ShareCenterPage() {
   const { id }    = useParams();
   const navigate  = useNavigate();
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setTab]   = useState('shares');
+  const [zipLoading, setZipLoading] = useState({ shares: false, public: false });
 
   useEffect(() => {
     api.get(`/share/${id}`)
@@ -46,11 +81,12 @@ export default function ShareCenterPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  const downloadZip = (type) => {
-    const url = type === 'shares'
-      ? `${API_BASE}/api/share/download-shares/${id}`
-      : `${API_BASE}/api/share/download-public/${id}`;
-    window.open(url, '_blank');
+  const downloadZip = async (type) => {
+    setZipLoading(prev => ({ ...prev, [type]: true }));
+    const url      = type === 'shares' ? `/api/share/download-shares/${id}` : `/api/share/download-public/${id}`;
+    const filename = type === 'shares' ? `pixshard_shares_${id}.zip` : `pixshard_public_${id}.zip`;
+    await authDownload(url, filename);
+    setZipLoading(prev => ({ ...prev, [type]: false }));
   };
 
   if (loading) return (
@@ -107,21 +143,29 @@ export default function ShareCenterPage() {
             whileHover={{ translateY: -1, boxShadow: 'var(--shadow-primary)' }}
             whileTap={{ scale: 0.98 }}
             className="btn-primary"
-            style={{ fontSize: '0.8125rem' }}
+            style={{ fontSize: '0.8125rem', opacity: zipLoading.shares ? 0.7 : 1 }}
             onClick={() => downloadZip('shares')}
+            disabled={zipLoading.shares}
             aria-label="Download all shares as ZIP"
           >
-            <FileArchive size={14} /> Download All Shares (ZIP)
+            {zipLoading.shares
+              ? <span className="spinner" style={{ width: 13, height: 13, borderWidth: 2 }} />
+              : <FileArchive size={14} />}
+            Download All Shares (ZIP)
           </motion.button>
           <motion.button
             whileHover={{ translateY: -1 }}
             whileTap={{ scale: 0.98 }}
             className="btn-secondary"
-            style={{ fontSize: '0.8125rem' }}
+            style={{ fontSize: '0.8125rem', opacity: zipLoading.public ? 0.7 : 1 }}
             onClick={() => downloadZip('public')}
+            disabled={zipLoading.public}
             aria-label="Download public data as ZIP"
           >
-            <Database size={14} /> Download Public Data (ZIP)
+            {zipLoading.public
+              ? <span className="spinner" style={{ width: 13, height: 13, borderWidth: 2 }} />
+              : <Database size={14} />}
+            Download Public Data (ZIP)
           </motion.button>
         </div>
       </motion.div>

@@ -89,14 +89,15 @@ def encrypt_essential(image_path, t, k, n, shares_dir, public_dir):
 
     for i in range(num_blocks):
         s_i = flat[i * k:(i + 1) * k].reshape(k, 1)
-        # Rejection sample until alpha ≠ 0
+        # Rejection sample until alpha ≠ 0 mod Q
         while True:
-            c_i = rng.integers(0, 256, size=(n, 1), dtype=np.int64)
+            c_i = rng.integers(0, Q, size=(n, 1), endpoint=False, dtype=np.int64)
             alpha_i = int(np.sum(c_i[:t]) % Q)
             if alpha_i != 0:
                 break
         # b = alpha * A*s + c  (mod Q)
-        b_i = (alpha_i * (A @ s_i) + c_i) % Q
+        As = (A @ s_i) % Q
+        b_i = (alpha_i * As + c_i) % Q
         all_b.append(b_i.flatten().tolist())
         for j in range(n):
             share_lists[j].append(int(c_i[j, 0]))
