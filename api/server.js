@@ -43,7 +43,12 @@ mongoose
   .connect(MONGO_URI)
   .then(() => {
     console.log('✓ MongoDB connected');
-    app.listen(PORT, () => console.log(`✓ PixShard API listening on http://localhost:${PORT}`));
+    const server = app.listen(PORT, () =>
+      console.log(`✓ PixShard API listening on http://localhost:${PORT}`)
+    );
+    // Allow up to 10 minutes for large Essential SSS encryption jobs
+    server.timeout = 10 * 60 * 1000;
+    server.keepAliveTimeout = 10 * 60 * 1000;
   })
   .catch((err) => {
     console.error('✗ MongoDB connection failed:', err.message);

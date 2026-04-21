@@ -80,37 +80,45 @@ def encrypt_essential(image_path, t, k, n, shares_dir, public_dir):
         flat = np.concatenate([flat, np.zeros(pad_len, dtype=np.int64)])
     num_blocks = len(flat) // k
 
-    A = _vandermonde(n, k)          # n×k Vandermonde
-    share_lists = [[] for _ in range(n)]
-    all_b = []
+    A = _vandermonde(n, k)   # n×k Vandermonde matrix in GF(257)
     rng = np.random.default_rng()
 
-    print(f"[PixShard] Essential encryption: t={t} k={k} n={n} blocks={num_blocks}", flush=True)
+    print(f"[PixShard] Essential (vectorised): t={t} k={k} n={n} blocks={num_blocks}", flush=True)
 
-    for i in range(num_blocks):
-        s_i = flat[i * k:(i + 1) * k].reshape(k, 1)
-        # Rejection sample until alpha ≠ 0 mod Q
-        while True:
-            c_i = rng.integers(0, Q, size=(n, 1), endpoint=False, dtype=np.int64)
-            alpha_i = int(np.sum(c_i[:t]) % Q)
-            if alpha_i != 0:
-                break
-        # b = alpha * A*s + c  (mod Q)
-        As = (A @ s_i) % Q
-        b_i = (alpha_i * As + c_i) % Q
-        all_b.append(b_i.flatten().tolist())
-        for j in range(n):
-            share_lists[j].append(int(c_i[j, 0]))
+    # ── Vectorized batch generation ─────────────────────────────────────────
+    # S: num_blocks × k  (each row = one block's k secret values)
+    S = flat.reshape(num_blocks, k)   # shape (B, k)
 
+    # C: num_blocks × n  (c_i values for each participant per block)
+    # Rejection-sample in bulk: regenerate any block where alpha=0
+    C = rng.integers(0, Q, size=(num_blocks, n), endpoint=False, dtype=np.int64)
+    # alpha per block = sum of the first t participants' c values mod Q
+    alpha = np.sum(C[:, :t], axis=1) % Q   # shape (B,)
+
+    # Find bad blocks (alpha == 0) and resample until none remain
+    bad = np.where(alpha == 0)[0]
+    while len(bad) > 0:
+        C[bad] = rng.integers(0, Q, size=(len(bad), n), endpoint=False, dtype=np.int64)
+        alpha[bad] = np.sum(C[bad, :t], axis=1) % Q
+        bad = bad[alpha[bad] == 0]
+
+    # A*S^T: (n×k) @ (k×B) = (n×B)  → transpose to (B×n)
+    AS = (A @ S.T) % Q   # shape (n, B)  then → (B, n)
+    AS = AS.T            # shape (B, n)
+
+    # b = alpha[:,None] * AS + C  (mod Q)  — all broadcastable
+    B_mat = (alpha[:, None] * AS + C) % Q   # shape (B, n)
+
+    # ── Save outputs ────────────────────────────────────────────────────────
     share_files = []
     for j in range(n):
         fname = f"participant_{j + 1}.npy"
-        np.save(os.path.join(shares_dir, fname), np.array(share_lists[j], dtype=np.uint16))
+        np.save(os.path.join(shares_dir, fname), C[:, j].astype(np.uint16))
         share_files.append(fname)
 
     np.save(os.path.join(public_dir, "matrix_A.npy"), A)
     with open(os.path.join(public_dir, "public_b.json"), "w") as f:
-        json.dump(all_b, f)
+        json.dump(B_mat.tolist(), f)
 
     meta = {
         "scheme": "essential", "t": t, "k": k, "n": n,
