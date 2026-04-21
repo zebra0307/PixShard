@@ -33,7 +33,7 @@ const FileRow = ({ name, projectId, type, index }) => {
 
   const handleDownload = async () => {
     setLoading(true);
-    await authDownload(`/api/share/download-file/${projectId}/${name}`, name);
+    await authDownload(`/share/download-file/${projectId}/${name}`, name);
     setLoading(false);
   };
 
@@ -83,7 +83,7 @@ export default function ShareCenterPage() {
 
   const downloadZip = async (type) => {
     setZipLoading(prev => ({ ...prev, [type]: true }));
-    const url      = type === 'shares' ? `/api/share/download-shares/${id}` : `/api/share/download-public/${id}`;
+    const url      = type === 'shares' ? `/share/download-shares/${id}` : `/share/download-public/${id}`;
     const filename = type === 'shares' ? `pixshard_shares_${id}.zip` : `pixshard_public_${id}.zip`;
     await authDownload(url, filename);
     setZipLoading(prev => ({ ...prev, [type]: false }));
