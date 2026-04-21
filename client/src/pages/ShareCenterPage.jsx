@@ -194,9 +194,30 @@ export default function ShareCenterPage() {
             : <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>No share files found.</p>
         ) : (
           <>
-            {['metadata.json', 'matrix_A.npy', 'public_b.json'].map((f, i) => (
-              <FileRow key={f} name={f} projectId={id} type="public" index={i} />
-            ))}
+            {/* metadata.json exists for ALL schemes */}
+            <FileRow name="metadata.json" projectId={id} type="public" index={0} />
+
+            {/* matrix_A.npy and public_b.json only exist for Essential scheme */}
+            {project.schemeType === 'Essential' ? (
+              <>
+                <FileRow name="matrix_A.npy"  projectId={id} type="public" index={1} />
+                <FileRow name="public_b.json" projectId={id} type="public" index={2} />
+              </>
+            ) : (
+              <div style={{
+                marginTop: '0.75rem', padding: '0.75rem 1rem',
+                borderRadius: 'var(--radius-md)',
+                background: 'rgba(56,189,248,0.05)',
+                border: '1px solid rgba(56,189,248,0.12)',
+              }}>
+                <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                  <span style={{ color: 'var(--color-secondary)', fontWeight: 600 }}>Standard (k,n) scheme</span>
+                  {' '}— only <code style={{ fontFamily: 'monospace', color: 'var(--text-secondary)' }}>metadata.json</code> is
+                  needed for reconstruction. <code>matrix_A.npy</code> and <code>public_b.json</code> are
+                  generated only by the Essential (t,k,n) scheme.
+                </p>
+              </div>
+            )}
           </>
         )}
       </motion.div>
