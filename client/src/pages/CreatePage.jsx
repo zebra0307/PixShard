@@ -14,13 +14,13 @@ const StepIndicator = ({ current }) => (
         <motion.div animate={{ scale: i === current ? 1.1 : 1 }}
           style={{
             width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: i < current ? 'linear-gradient(135deg,#7c3aed,#4f46e5)' : i === current ? 'linear-gradient(135deg,#7c3aed,#06b6d4)' : 'rgba(255,255,255,0.05)',
-            border: i <= current ? 'none' : '1px solid rgba(255,255,255,0.1)',
-            color: i <= current ? '#fff' : '#475569', fontSize: 12, fontWeight: 700,
+            background: i <= current ? 'var(--color-primary)' : 'var(--bg-soft)',
+            border: i <= current ? 'none' : '1px solid var(--border-subtle)',
+            color: i <= current ? '#fff' : 'var(--text-faint)', fontSize: 12, fontWeight: 700,
           }}>
           {i < current ? <CheckCircle size={14} /> : i + 1}
         </motion.div>
-        <span style={{ fontSize: 12, color: i === current ? '#e2e8f0' : '#475569', fontWeight: i === current ? 600 : 400 }}>{label}</span>
+        <span style={{ fontSize: 12, color: i === current ? 'var(--text-primary)' : 'var(--text-faint)', fontWeight: i === current ? 600 : 400 }}>{label}</span>
         {i < STEPS.length - 1 && <div style={{ width: 20, height: 1, background: 'rgba(255,255,255,0.1)' }} />}
       </div>
     ))}
@@ -87,10 +87,10 @@ export default function CreatePage() {
   return (
     <div style={{ maxWidth: 620, margin: '0 auto', padding: '48px 24px' }}>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 style={{ fontSize: 26, fontWeight: 800, fontFamily: 'Space Grotesk, sans-serif', marginBottom: 8 }}>
-          Create <span className="grad-text">New Shard</span>
+        <h1 style={{ fontSize: '1.625rem', fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 8 }}>
+          Create <span style={{ color: 'var(--color-primary)' }}>New Shard</span>
         </h1>
-        <p style={{ color: '#64748b', fontSize: 14, marginBottom: 36 }}>
+        <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 36 }}>
           Upload an image and configure a secret sharing scheme
         </p>
 
@@ -139,11 +139,11 @@ export default function CreatePage() {
                     <motion.div key={s.key} whileHover={{ scale: 1.02 }} onClick={() => setScheme(s.key)}
                       style={{
                         padding: 20, borderRadius: 12, cursor: 'pointer', textAlign: 'center',
-                        border: `1px solid ${scheme === s.key ? s.color : 'rgba(255,255,255,0.08)'}`,
-                        background: scheme === s.key ? `${s.color}12` : 'rgba(255,255,255,0.02)',
+                        border: `1px solid ${scheme === s.key ? 'var(--color-primary)' : 'var(--border-subtle)'}`,
+                        background: scheme === s.key ? 'rgba(124,58,237,0.08)' : 'var(--bg-soft)',
                         transition: 'all 0.2s',
                       }}>
-                      <div style={{ color: s.color, marginBottom: 10 }}>{s.icon}</div>
+                      <div style={{ color: scheme === s.key ? 'var(--color-primary)' : 'var(--text-faint)', marginBottom: 10 }}>{s.icon}</div>
                       <p style={{ fontWeight: 700, marginBottom: 4, color: '#e2e8f0' }}>{s.key}</p>
                       <p style={{ fontSize: 12, color: '#64748b' }}>{s.desc}</p>
                     </motion.div>
@@ -244,8 +244,8 @@ export default function CreatePage() {
                 disabled={step === 0 && !file}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 6, padding: '10px 24px',
-                  borderRadius: 10, border: 'none', cursor: 'pointer',
-                  background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', color: '#fff', fontWeight: 700, fontSize: 13,
+                  borderRadius: 'var(--radius-pill)', border: 'none', cursor: 'pointer',
+                  background: 'var(--color-primary)', color: '#fff', fontWeight: 600, fontSize: 13,
                 }}>
                 Next <ChevronRight size={15} />
               </motion.button>
@@ -255,8 +255,8 @@ export default function CreatePage() {
                 style={{
                   display: 'flex', alignItems: 'center', gap: 8, padding: '10px 28px',
                   borderRadius: 10, border: 'none', cursor: loading ? 'not-allowed' : 'pointer',
-                  background: loading ? '#374151' : 'linear-gradient(135deg, #7c3aed, #06b6d4)',
-                  color: '#fff', fontWeight: 700, fontSize: 14,
+                  background: loading ? 'var(--bg-overlay)' : 'var(--color-primary)',
+                  color: '#fff', fontWeight: 600, fontSize: 14,
                 }}>
                 {loading ? <><Loader size={14} /> Encrypting…</> : '🔐 Encrypt Now'}
               </motion.button>

@@ -4,14 +4,25 @@ import { Trash2, ExternalLink, Shield, Cpu } from 'lucide-react';
 import api from '../api/axiosConfig';
 import toast from 'react-hot-toast';
 
-const schemeColors = {
-  Standard: { color: '#06b6d4', bg: 'rgba(6,182,212,0.1)' },
-  Essential: { color: '#a855f7', bg: 'rgba(168,85,247,0.1)' },
+const STATUS_BADGE = {
+  ready:      { label: 'ready',      cls: 'badge badge-green' },
+  failed:     { label: 'failed',     cls: 'badge badge-red'   },
+  processing: { label: 'processing', cls: 'badge badge-amber' },
+};
+
+const SCHEME_BADGE = {
+  Standard: { cls: 'badge badge-cyan',   icon: <Cpu size={10} /> },
+  Essential:{ cls: 'badge badge-purple', icon: <Shield size={10} /> },
 };
 
 export default function ProjectCard({ project, onDelete }) {
   const navigate = useNavigate();
-  const sc = schemeColors[project.schemeType] || schemeColors.Standard;
+  const sb = SCHEME_BADGE[project.schemeType] || SCHEME_BADGE.Standard;
+  const st = STATUS_BADGE[project.status]    || STATUS_BADGE.processing;
+
+  const params = project.schemeType === 'Essential'
+    ? `t=${project.t}, k=${project.k}, n=${project.n}`
+    : `k=${project.k}, n=${project.n}`;
 
   const handleDelete = async (e) => {
     e.stopPropagation();
@@ -25,72 +36,52 @@ export default function ProjectCard({ project, onDelete }) {
     }
   };
 
-  const params = project.schemeType === 'Essential'
-    ? `t=${project.t}, k=${project.k}, n=${project.n}`
-    : `k=${project.k}, n=${project.n}`;
-
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -4, boxShadow: '0 20px 60px rgba(124,58,237,0.15)' }}
+      whileHover={{ y: -3, boxShadow: 'var(--shadow-card-hover)' }}
       transition={{ duration: 0.2 }}
       onClick={() => navigate(`/project/${project._id}`)}
-      className="glass"
-      style={{ borderRadius: 16, padding: 24, cursor: 'pointer', position: 'relative', overflow: 'hidden' }}
+      className="card"
+      style={{ borderRadius: 'var(--radius-lg)', padding: '1.25rem', cursor: 'pointer', position: 'relative', overflow: 'hidden' }}
+      role="button"
+      tabIndex={0}
+      aria-label={`Open project ${project.originalImageName}`}
+      onKeyDown={e => e.key === 'Enter' && navigate(`/project/${project._id}`)}
     >
-      {/* Subtle gradient top-accent */}
-      <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0, height: 2,
-        background: `linear-gradient(90deg, ${sc.color}, transparent)`,
-      }} />
+      {/* Top accent line — single color, not gradient */}
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'var(--color-primary)', opacity: 0.7 }} />
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-        <div style={{
-          display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px',
-          borderRadius: 20, background: sc.bg, color: sc.color,
-          fontSize: 11, fontWeight: 600, letterSpacing: '0.05em',
-        }}>
-          {project.schemeType === 'Essential' ? <Shield size={11} /> : <Cpu size={11} />}
+      {/* Header row */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.875rem' }}>
+        <span className={sb.cls} style={{ gap: '0.3rem' }}>
+          {sb.icon}
           {project.schemeType.toUpperCase()}
-        </div>
+        </span>
         <button
           onClick={handleDelete}
-          style={{
-            background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)',
-            borderRadius: 8, padding: '6px 8px', cursor: 'pointer', color: '#ef4444',
-            transition: 'all 0.2s',
-          }}
+          className="btn-danger"
+          aria-label={`Delete project ${project.originalImageName}`}
         >
-          <Trash2 size={13} />
+          <Trash2 size={12} />
         </button>
       </div>
 
-      <p style={{ fontWeight: 600, fontSize: 15, marginBottom: 6, color: '#f1f5f9' }}>
+      {/* File name */}
+      <p style={{ fontWeight: 600, fontSize: '0.9375rem', marginBottom: '0.25rem', color: 'var(--text-primary)', wordBreak: 'break-all' }}>
         {project.originalImageName}
       </p>
-      <p style={{ fontSize: 12, color: '#64748b', marginBottom: 16 }}>({params})</p>
+      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '1rem', fontFamily: 'monospace' }}>
+        ({params})
+      </p>
 
+      {/* Footer */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: 11, color: '#475569' }}>
+        <span className={st.cls}>{st.label}</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+          <ExternalLink size={11} />
           {new Date(project.createdAt).toLocaleDateString()}
-        </span>
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 4,
-          color: sc.color, fontSize: 12, fontWeight: 500,
-        }}>
-          <ExternalLink size={12} /> View Shares
-        </div>
-      </div>
-
-      <div style={{ marginTop: 12 }}>
-        <span style={{
-          display: 'inline-block', padding: '3px 8px', borderRadius: 6,
-          fontSize: 11,
-          background: project.status === 'ready' ? 'rgba(34,197,94,0.1)' : project.status === 'failed' ? 'rgba(239,68,68,0.1)' : 'rgba(251,191,36,0.1)',
-          color: project.status === 'ready' ? '#22c55e' : project.status === 'failed' ? '#ef4444' : '#fbbf24',
-        }}>
-          ● {project.status}
         </span>
       </div>
     </motion.div>

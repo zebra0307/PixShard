@@ -1,45 +1,60 @@
-import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Layers, Cpu, Shield, ArrowRight } from 'lucide-react';
+import { Layers, Cpu, Shield, ArrowRight, Lock, Share2, Download } from 'lucide-react';
+import { motion } from 'framer-motion';
 
-const FeatureCard = ({ icon, title, desc, delay }) => (
+const Feature = ({ icon, title, desc, delay }) => (
   <motion.div
-    initial={{ opacity: 0, y: 30 }}
+    initial={{ opacity: 0, y: 24 }}
     whileInView={{ opacity: 1, y: 0 }}
-    transition={{ delay, duration: 0.5 }}
     viewport={{ once: true }}
-    className="glass"
-    style={{ borderRadius: 16, padding: 28 }}
+    transition={{ delay, duration: 0.4 }}
+    className="card"
+    style={{ padding: '1.5rem', borderRadius: 'var(--radius-lg)' }}
   >
     <div style={{
-      width: 44, height: 44, borderRadius: 12,
-      background: 'linear-gradient(135deg, rgba(124,58,237,0.2), rgba(6,182,212,0.2))',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16,
+      width: 38, height: 38, borderRadius: 'var(--radius-md)',
+      background: 'var(--bg-soft)',
+      border: '1px solid var(--border-subtle)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      marginBottom: '1rem',
+      color: 'var(--color-primary)',
     }}>
       {icon}
     </div>
-    <h3 style={{ fontWeight: 700, fontSize: 16, marginBottom: 8, color: '#f1f5f9' }}>{title}</h3>
-    <p style={{ fontSize: 13, lineHeight: 1.7, color: '#64748b' }}>{desc}</p>
+    <h3 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: '0.4rem', color: 'var(--text-primary)' }}>
+      {title}
+    </h3>
+    <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', lineHeight: 1.65 }}>{desc}</p>
   </motion.div>
 );
 
-const SchemeBox = ({ name, formula, desc, color, delay }) => (
+const SchemeCard = ({ name, formula, desc, delay }) => (
   <motion.div
-    initial={{ opacity: 0, x: -20 }}
-    whileInView={{ opacity: 1, x: 0 }}
+    initial={{ opacity: 0, y: 20 }}
+    whileInView={{ opacity: 1, y: 0 }}
     viewport={{ once: true }}
     transition={{ delay, duration: 0.4 }}
-    className="glass"
-    style={{ borderRadius: 16, padding: 28, borderLeft: `3px solid ${color}` }}
+    className="card"
+    style={{ padding: '1.5rem', borderRadius: 'var(--radius-lg)' }}
   >
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-      <code style={{
-        padding: '4px 12px', borderRadius: 8, fontSize: 15, fontWeight: 700,
-        background: `${color}18`, color,
-      }}>{formula}</code>
-    </div>
-    <h3 style={{ fontWeight: 600, fontSize: 15, marginBottom: 8, color: '#e2e8f0' }}>{name}</h3>
-    <p style={{ fontSize: 13, lineHeight: 1.7, color: '#64748b' }}>{desc}</p>
+    <code style={{
+      display: 'inline-block',
+      padding: '0.2rem 0.75rem',
+      borderRadius: 'var(--radius-pill)',
+      fontSize: '0.875rem',
+      fontWeight: 700,
+      background: 'rgba(124,58,237,0.1)',
+      border: '1px solid rgba(124,58,237,0.2)',
+      color: '#A78BFA',
+      marginBottom: '0.875rem',
+      letterSpacing: '0.01em',
+    }}>
+      {formula}
+    </code>
+    <h3 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
+      {name}
+    </h3>
+    <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', lineHeight: 1.65 }}>{desc}</p>
   </motion.div>
 );
 
@@ -47,67 +62,81 @@ export default function LandingPage() {
   const navigate = useNavigate();
 
   return (
-    <div style={{ minHeight: '100vh', overflowX: 'hidden' }}>
-      {/* Hero */}
-      <section style={{ padding: '100px 24px 80px', textAlign: 'center', position: 'relative' }}>
-        {/* Background glow */}
-        <div style={{
-          position: 'absolute', top: '10%', left: '50%', transform: 'translateX(-50%)',
-          width: 600, height: 400, borderRadius: '50%',
-          background: 'radial-gradient(ellipse, rgba(124,58,237,0.12) 0%, transparent 70%)',
-          pointerEvents: 'none',
-        }} />
+    <main style={{ minHeight: '100vh', overflowX: 'hidden' }}>
 
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6 }}
-        >
+      {/* ── Hero ───────────────────────────────────────────────────────── */}
+      <section style={{
+        padding: 'clamp(5rem, 12vh, 7rem) 1.5rem 5rem',
+        maxWidth: 700,
+        margin: '0 auto',
+        textAlign: 'center',
+      }}>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+
+          {/* Eyebrow label */}
           <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8,
-            padding: '6px 16px', borderRadius: 20,
-            border: '1px solid rgba(124,58,237,0.3)', background: 'rgba(124,58,237,0.08)',
-            color: '#a78bfa', fontSize: 12, fontWeight: 600, marginBottom: 28, letterSpacing: '0.05em',
+            display: 'inline-flex', alignItems: 'center', gap: 7,
+            padding: '0.3rem 0.875rem',
+            borderRadius: 'var(--radius-pill)',
+            background: 'var(--bg-soft)',
+            border: '1px solid var(--border-subtle)',
+            color: 'var(--text-muted)',
+            fontSize: '0.6875rem',
+            fontWeight: 600,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            marginBottom: '1.75rem',
           }}>
-            <Layers size={13} /> SECRET IMAGE SHARING
+            <Layers size={11} color="var(--color-primary)" />
+            Secret Image Sharing
           </div>
 
+          {/* Headline */}
           <h1 style={{
-            fontSize: 'clamp(40px, 7vw, 72px)', fontFamily: 'Space Grotesk, sans-serif',
-            fontWeight: 800, lineHeight: 1.1, marginBottom: 24, color: '#f1f5f9',
+            fontSize: 'clamp(2.25rem, 5vw, 3.25rem)',
+            fontWeight: 700,
+            letterSpacing: '-0.03em',
+            lineHeight: 1.1,
+            color: 'var(--text-primary)',
+            marginBottom: '1.5rem',
           }}>
             Split your image.<br />
-            <span className="grad-text">Share the secret.</span>
+            <span style={{ color: 'var(--color-primary)' }}>Share the secret.</span>
           </h1>
 
-          <p style={{ fontSize: 17, color: '#64748b', maxWidth: 560, margin: '0 auto 40px', lineHeight: 1.7 }}>
-            PixShard implements cryptographic secret sharing schemes that split
-            any image into <strong style={{ color: '#94a3b8' }}>n shares</strong>,
-            requiring <strong style={{ color: '#94a3b8' }}>k</strong> to reconstruct — zero loss, zero compromise.
+          {/* Sub-headline */}
+          <p style={{
+            fontSize: '1.0625rem',
+            color: 'var(--text-muted)',
+            maxWidth: 520,
+            margin: '0 auto 2rem',
+            lineHeight: 1.65,
+          }}>
+            PixShard implements cryptographic secret sharing schemes that split any image
+            into <strong style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>n shares</strong>,
+            requiring <strong style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>k</strong> to
+            reconstruct — lossless, provably secure.
           </p>
 
-          <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
+          {/* CTAs */}
+          <div style={{ display: 'flex', gap: '0.875rem', justifyContent: 'center', flexWrap: 'wrap' }}>
             <motion.button
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.97 }}
+              whileHover={{ translateY: -2, boxShadow: '0 8px 28px rgba(124,58,237,0.28)' }}
+              whileTap={{ scale: 0.98 }}
+              className="btn-primary"
+              style={{ padding: '0.75rem 1.625rem', fontSize: '0.9375rem' }}
               onClick={() => navigate('/register')}
-              style={{
-                padding: '14px 32px', borderRadius: 12, border: 'none', cursor: 'pointer',
-                background: 'linear-gradient(135deg, #7c3aed, #4f46e5)',
-                color: '#fff', fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', gap: 8,
-              }}
+              aria-label="Get started with PixShard"
             >
-              Get Started <ArrowRight size={16} />
+              Get Started <ArrowRight size={15} />
             </motion.button>
             <motion.button
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.97 }}
+              whileHover={{ translateY: -2 }}
+              whileTap={{ scale: 0.98 }}
+              className="btn-secondary"
+              style={{ padding: '0.75rem 1.625rem', fontSize: '0.9375rem' }}
               onClick={() => navigate('/login')}
-              style={{
-                padding: '14px 32px', borderRadius: 12, cursor: 'pointer',
-                background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-                color: '#94a3b8', fontWeight: 600, fontSize: 15,
-              }}
+              aria-label="Sign in to your account"
             >
               Sign In
             </motion.button>
@@ -115,40 +144,46 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
-      {/* Schemes */}
-      <section style={{ padding: '60px 24px', maxWidth: 900, margin: '0 auto' }}>
+      {/* ── Schemes ────────────────────────────────────────────────────── */}
+      <section style={{ padding: '2rem 1.5rem 3.5rem', maxWidth: 860, margin: '0 auto' }}>
         <motion.h2
           initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
-          style={{ textAlign: 'center', fontSize: 28, fontWeight: 700, marginBottom: 40, color: '#e2e8f0' }}
+          style={{
+            textAlign: 'center',
+            fontSize: '1.375rem',
+            fontWeight: 600,
+            color: 'var(--text-primary)',
+            marginBottom: '1.75rem',
+            letterSpacing: '-0.02em',
+          }}
         >
-          Two Cryptographic Schemes
+          Two cryptographic schemes
         </motion.h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 20 }}>
-          <SchemeBox
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
+          <SchemeCard
             name="Standard Secret Sharing"
             formula="(k, n)"
-            color="#06b6d4"
-            delay={0.1}
+            delay={0.05}
             desc="Any k shares out of n can reconstruct the original image. Uses Shamir's polynomial interpolation over GF(257) — mathematically lossless for any image."
           />
-          <SchemeBox
+          <SchemeCard
             name="Essential Secret Sharing"
             formula="(t, k, n)"
-            color="#a855f7"
-            delay={0.2}
-            desc="Extends (k,n) with t 'essential' participants who must be present. Even with k shares, reconstruction fails without all t essential holders."
+            delay={0.1}
+            desc="Extends (k, n) with t 'essential' participants who must all be present. Even with k shares, reconstruction fails without every essential participant."
           />
         </div>
       </section>
 
-      {/* Features */}
-      <section style={{ padding: '40px 24px 100px', maxWidth: 900, margin: '0 auto' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20 }}>
-          <FeatureCard delay={0.1} icon={<Cpu size={20} color="#06b6d4" />} title="Lossless Reconstruction" desc="Arithmetic over GF(257) guarantees exact pixel-perfect reconstruction — no floating-point errors." />
-          <FeatureCard delay={0.2} icon={<Shield size={20} color="#a855f7" />} title="Essential Participants" desc="t designated participants carry cryptographic weight. Missing any one makes reconstruction mathematically impossible." />
-          <FeatureCard delay={0.3} icon={<Layers size={20} color="#f59e0b" />} title="Download as ZIP" desc="Download all shares or public metadata as ZIP bundles — ready to distribute to your participants." />
+      {/* ── Features ───────────────────────────────────────────────────── */}
+      <section style={{ padding: '0 1.5rem 6rem', maxWidth: 860, margin: '0 auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '1rem' }}>
+          <Feature delay={0.05} icon={<Lock size={18} />} title="Lossless Reconstruction" desc="Arithmetic over GF(257) guarantees exact pixel-perfect reconstruction — no floating-point errors." />
+          <Feature delay={0.1} icon={<Shield size={18} />} title="Essential Participants" desc="Designated participants carry cryptographic weight. Missing any one makes reconstruction impossible." />
+          <Feature delay={0.15} icon={<Download size={18} />} title="Download as ZIP" desc="Download all shares or public metadata as ZIP bundles — ready to distribute." />
         </div>
       </section>
-    </div>
+
+    </main>
   );
 }

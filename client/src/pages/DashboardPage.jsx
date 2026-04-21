@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import ProjectCard from '../components/ProjectCard';
 import api from '../api/axiosConfig';
 import toast from 'react-hot-toast';
-import { Plus, FolderOpen, Loader } from 'lucide-react';
+import { Plus, FolderOpen } from 'lucide-react';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -23,51 +23,64 @@ export default function DashboardPage() {
   const handleDelete = (id) => setProjects(p => p.filter(x => x._id !== id));
 
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto', padding: '48px 24px' }}>
+    <div style={{ maxWidth: 1100, margin: '0 auto', padding: '3rem 1.5rem' }}>
+
       {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 40 }}>
+      <motion.div
+        initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}
+      >
         <div>
-          <h1 style={{ fontSize: 28, fontWeight: 800, fontFamily: 'Space Grotesk, sans-serif' }}>
-            My <span className="grad-text">Shards</span>
+          <h1 style={{ fontSize: '1.625rem', fontWeight: 700, letterSpacing: '-0.02em', marginBottom: '0.25rem' }}>
+            My <span style={{ color: 'var(--color-primary)' }}>Shards</span>
           </h1>
-          <p style={{ color: '#64748b', fontsize: 14, marginTop: 4 }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
             {user?.displayName || user?.email?.split('@')[0]}'s secret sharing projects
           </p>
         </div>
-        <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
+        <motion.button
+          whileHover={{ translateY: -1, boxShadow: 'var(--shadow-primary)' }}
+          whileTap={{ scale: 0.98 }}
+          className="btn-primary"
           onClick={() => navigate('/create')}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 8, padding: '11px 22px',
-            borderRadius: 12, border: 'none', cursor: 'pointer',
-            background: 'linear-gradient(135deg, #7c3aed, #4f46e5)',
-            color: '#fff', fontWeight: 700, fontSize: 14,
-          }}>
-          <Plus size={16} /> New Shard
+          aria-label="Create new shard project"
+        >
+          <Plus size={15} /> New Shard
         </motion.button>
       </motion.div>
 
       {/* Content */}
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '80px 0' }}>
-          <Loader size={32} color="#7c3aed" style={{ animation: 'spin 1s linear infinite' }} />
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '5rem 0' }}>
+          <div className="spinner" aria-label="Loading projects" />
         </div>
+
       ) : projects.length === 0 ? (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-          style={{ textAlign: 'center', padding: '100px 24px' }}>
-          <FolderOpen size={56} color="#334155" style={{ margin: '0 auto 20px', display: 'block' }} />
-          <h2 style={{ fontSize: 20, fontWeight: 600, color: '#94a3b8', marginBottom: 10 }}>No shards yet</h2>
-          <p style={{ color: '#475569', fontSize: 14, marginBottom: 28 }}>Upload an image and choose a scheme to generate your first shard project.</p>
-          <motion.button whileHover={{ scale: 1.04 }} onClick={() => navigate('/create')}
-            style={{
-              padding: '12px 28px', borderRadius: 10, border: 'none', cursor: 'pointer',
-              background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', color: '#fff', fontWeight: 700,
-            }}>
+        <motion.div
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+          style={{ textAlign: 'center', padding: '5rem 1.5rem' }}
+        >
+          <div style={{
+            width: 52, height: 52, borderRadius: 'var(--radius-lg)',
+            background: 'var(--bg-soft)', border: '1px solid var(--border-subtle)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto 1.25rem',
+          }}>
+            <FolderOpen size={24} color="var(--text-faint)" />
+          </div>
+          <h2 style={{ fontSize: '1.0625rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+            No shards yet
+          </h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '1.5rem', maxWidth: 340, margin: '0 auto 1.5rem' }}>
+            Upload an image and choose a sharing scheme to create your first project.
+          </p>
+          <button className="btn-primary" onClick={() => navigate('/create')}>
             Create First Shard
-          </motion.button>
+          </button>
         </motion.div>
+
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))', gap: '1rem' }}>
           {projects.map(p => <ProjectCard key={p._id} project={p} onDelete={handleDelete} />)}
         </div>
       )}

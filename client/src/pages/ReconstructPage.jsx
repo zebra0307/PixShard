@@ -19,12 +19,12 @@ const StepIndicator = ({ current }) => (
             width: 32, height: 32, borderRadius: '50%',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             background: i < current
-              ? 'linear-gradient(135deg,#7c3aed,#4f46e5)'
+              ? 'var(--color-primary)'
               : i === current
-                ? 'linear-gradient(135deg,#06b6d4,#7c3aed)'
-                : 'rgba(255,255,255,0.05)',
-            border: i <= current ? 'none' : '1px solid rgba(255,255,255,0.1)',
-            color: i <= current ? '#fff' : '#475569',
+                ? 'var(--color-primary)'
+                : 'var(--bg-soft)',
+            border: i <= current ? 'none' : '1px solid var(--border-subtle)',
+            color: i <= current ? '#fff' : 'var(--text-faint)',
             fontSize: 12, fontWeight: 700,
           }}>
           {i < current ? <CheckCircle size={14} /> : i + 1}
@@ -123,7 +123,7 @@ export default function ReconstructPage() {
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <h1 style={{ fontSize: 26, fontWeight: 800, fontFamily: 'Space Grotesk, sans-serif', marginBottom: 8 }}>
-          Reconstruct <span className="grad-text">Image</span>
+          Reconstruct <span style={{ color: 'var(--color-primary)' }}>Image</span>
         </h1>
         <p style={{ color: '#64748b', fontSize: 14, marginBottom: 36 }}>
           Upload your shares and public data to recover the original image
@@ -296,10 +296,11 @@ export default function ReconstructPage() {
                     animate={{ scale: 1 }}
                     transition={{ type: 'spring', stiffness: 200, damping: 14 }}
                     style={{
-                      width: 64, height: 64, borderRadius: '50%',
-                      background: 'linear-gradient(135deg, rgba(34,197,94,0.2), rgba(6,182,212,0.2))',
+                      width: 56, height: 56, borderRadius: '50%',
+                      background: 'rgba(34,197,94,0.08)',
+                      border: '1px solid rgba(34,197,94,0.2)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      margin: '0 auto 20px',
+                      margin: '0 auto 1.25rem',
                     }}>
                     <CheckCircle size={30} color="#22c55e" />
                   </motion.div>
@@ -325,8 +326,8 @@ export default function ReconstructPage() {
                         style={{
                           display: 'inline-flex', alignItems: 'center', gap: 8,
                           padding: '12px 28px', borderRadius: 10,
-                          background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-                          color: '#fff', textDecoration: 'none', fontWeight: 700, fontSize: 14,
+                          background: '#16A34A',
+                          color: '#fff', textDecoration: 'none', fontWeight: 600, fontSize: 14,
                         }}>
                         <Download size={16} /> Download Reconstructed Image
                       </a>
@@ -357,8 +358,7 @@ export default function ReconstructPage() {
                   style={{
                     display: 'flex', alignItems: 'center', gap: 6, padding: '10px 24px',
                     borderRadius: 10, border: 'none', cursor: 'pointer',
-                    background: 'linear-gradient(135deg, #7c3aed, #4f46e5)',
-                    color: '#fff', fontWeight: 700, fontSize: 13,
+                    background: 'var(--color-primary)', color: '#fff', fontWeight: 600, fontSize: 13,
                   }}>
                   Next <ChevronRight size={15} />
                 </motion.button>
@@ -369,8 +369,8 @@ export default function ReconstructPage() {
                     display: 'flex', alignItems: 'center', gap: 8, padding: '10px 28px',
                     borderRadius: 10, border: 'none',
                     cursor: loading ? 'not-allowed' : 'pointer',
-                    background: loading ? '#374151' : 'linear-gradient(135deg, #06b6d4, #7c3aed)',
-                    color: '#fff', fontWeight: 700, fontSize: 14,
+                    background: loading ? 'var(--bg-overlay)' : 'var(--color-primary)',
+                    color: '#fff', fontWeight: 600, fontSize: 14,
                   }}>
                   {loading ? <><Loader size={14} /> Decrypting…</> : '🔑 Reconstruct Image'}
                 </motion.button>
@@ -392,7 +392,7 @@ export default function ReconstructPage() {
                 onClick={() => navigate('/dashboard')}
                 style={{
                   padding: '10px 22px', borderRadius: 10,
-                  background: 'linear-gradient(135deg, #7c3aed, #4f46e5)',
+                  background: 'var(--color-primary)',
                   border: 'none', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600,
                 }}>
                 <Layers size={13} style={{ marginRight: 6, display: 'inline' }} />

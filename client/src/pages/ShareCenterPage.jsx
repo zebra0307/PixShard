@@ -3,28 +3,28 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import api from '../api/axiosConfig';
 import toast from 'react-hot-toast';
-import { Download, FileArchive, File, ArrowLeft, Database, Loader } from 'lucide-react';
+import { Download, FileArchive, File, ArrowLeft, Database } from 'lucide-react';
 
 const FileRow = ({ name, projectId, type, index }) => (
-  <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.04 }}
-    style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '12px 16px', borderRadius: 10, background: 'rgba(255,255,255,0.03)',
-      border: '1px solid rgba(255,255,255,0.06)', marginBottom: 8,
-    }}>
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <File size={14} color={type === 'share' ? '#06b6d4' : '#a855f7'} />
-      <span style={{ fontSize: 13, color: '#cbd5e1', fontFamily: 'monospace' }}>{name}</span>
+  <motion.div
+    initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+    transition={{ delay: index * 0.04 }}
+    className="file-row"
+  >
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', minWidth: 0 }}>
+      <File size={13} color={type === 'share' ? 'var(--color-secondary)' : 'var(--color-primary)'} style={{ flexShrink: 0 }} />
+      <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {name}
+      </span>
     </div>
     <a
       href={`/api/share/download-file/${projectId}/${name}`}
       download={name}
-      style={{
-        display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px',
-        borderRadius: 7, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-        color: '#94a3b8', textDecoration: 'none', fontSize: 12, fontWeight: 500,
-      }}>
-      <Download size={12} /> Download
+      className="btn-secondary"
+      style={{ fontSize: '0.75rem', padding: '0.3rem 0.75rem', flexShrink: 0 }}
+      aria-label={`Download ${name}`}
+    >
+      <Download size={11} /> Download
     </a>
   </motion.div>
 );
@@ -51,108 +51,100 @@ export default function ShareCenterPage() {
   };
 
   if (loading) return (
-    <div style={{ display: 'flex', justifyContent: 'center', padding: '100px 0' }}>
-      <Loader size={32} color="#7c3aed" />
+    <div style={{ display: 'flex', justifyContent: 'center', padding: '6rem 0' }}>
+      <div className="spinner" aria-label="Loading project" />
     </div>
   );
   if (!project) return null;
 
-  const schemeColor = project.schemeType === 'Essential' ? '#a855f7' : '#06b6d4';
   const paramStr = project.schemeType === 'Essential'
     ? `t=${project.t}, k=${project.k}, n=${project.n}`
     : `k=${project.k}, n=${project.n}`;
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: '48px 24px' }}>
+    <div style={{ maxWidth: 860, margin: '0 auto', padding: '3rem 1.5rem' }}>
+
       {/* Back */}
-      <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+      <motion.button
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }}
         onClick={() => navigate('/dashboard')}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px',
-          borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-          color: '#64748b', cursor: 'pointer', fontSize: 13, marginBottom: 32,
-        }}>
-        <ArrowLeft size={14} /> Dashboard
+        className="btn-secondary"
+        style={{ marginBottom: '2rem', fontSize: '0.8125rem', padding: '0.4rem 0.875rem' }}
+      >
+        <ArrowLeft size={13} /> Dashboard
       </motion.button>
 
       {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 36 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-          <div style={{
-            padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, letterSpacing: '0.05em',
-            background: `${schemeColor}18`, color: schemeColor,
-          }}>
-            {project.schemeType.toUpperCase()} ({paramStr})
-          </div>
-          <div style={{
-            padding: '4px 10px', borderRadius: 20, fontSize: 11,
-            background: 'rgba(34,197,94,0.1)', color: '#22c55e',
-          }}>
-            ● {project.status}
-          </div>
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+          <span className={project.schemeType === 'Essential' ? 'badge badge-purple' : 'badge badge-cyan'}>
+            {project.schemeType} ({paramStr})
+          </span>
+          <span className={`badge ${project.status === 'ready' ? 'badge-green' : project.status === 'failed' ? 'badge-red' : 'badge-amber'}`}>
+            {project.status}
+          </span>
         </div>
-        <h1 style={{ fontSize: 26, fontWeight: 800, fontFamily: 'Space Grotesk, sans-serif', marginBottom: 4 }}>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 700, letterSpacing: '-0.02em', marginBottom: '0.25rem' }}>
           {project.originalImageName}
         </h1>
-        <p style={{ color: '#64748b', fontSize: 13 }}>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem' }}>
           Created {new Date(project.createdAt).toLocaleString()}
         </p>
       </motion.div>
 
-      {/* Download All Buttons */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-        className="glass" style={{ borderRadius: 16, padding: 24, marginBottom: 28 }}>
-        <h2 style={{ fontSize: 14, fontWeight: 600, color: '#94a3b8', marginBottom: 16, letterSpacing: '0.05em' }}>
-          BULK DOWNLOAD
-        </h2>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+      {/* Bulk download */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}
+        className="card"
+        style={{ padding: '1.25rem', marginBottom: '1.5rem', borderRadius: 'var(--radius-lg)' }}
+      >
+        <p className="label-caps" style={{ marginBottom: '0.875rem' }}>Bulk download</p>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <motion.button
+            whileHover={{ translateY: -1, boxShadow: 'var(--shadow-primary)' }}
+            whileTap={{ scale: 0.98 }}
+            className="btn-primary"
+            style={{ fontSize: '0.8125rem' }}
             onClick={() => downloadZip('shares')}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 8, padding: '11px 22px',
-              borderRadius: 10, border: 'none', cursor: 'pointer',
-              background: 'linear-gradient(135deg, #7c3aed, #4f46e5)',
-              color: '#fff', fontWeight: 600, fontSize: 13,
-            }}>
-            <FileArchive size={15} /> Download All Shares (ZIP)
+            aria-label="Download all shares as ZIP"
+          >
+            <FileArchive size={14} /> Download All Shares (ZIP)
           </motion.button>
-          <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+          <motion.button
+            whileHover={{ translateY: -1 }}
+            whileTap={{ scale: 0.98 }}
+            className="btn-secondary"
+            style={{ fontSize: '0.8125rem' }}
             onClick={() => downloadZip('public')}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 8, padding: '11px 22px',
-              borderRadius: 10, cursor: 'pointer',
-              background: 'rgba(168,85,247,0.12)', border: '1px solid rgba(168,85,247,0.25)',
-              color: '#a855f7', fontWeight: 600, fontSize: 13,
-            }}>
-            <Database size={15} /> Download Public Data (ZIP)
+            aria-label="Download public data as ZIP"
+          >
+            <Database size={14} /> Download Public Data (ZIP)
           </motion.button>
         </div>
       </motion.div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 0, marginBottom: 20 }}>
+      <div className="tab-bar">
         {[['shares', 'Share Files'], ['public', 'Public Data']].map(([key, label]) => (
-          <button key={key} onClick={() => setTab(key)}
-            style={{
-              padding: '10px 20px', border: 'none', cursor: 'pointer',
-              background: activeTab === key ? 'rgba(124,58,237,0.15)' : 'transparent',
-              borderBottom: `2px solid ${activeTab === key ? '#7c3aed' : 'transparent'}`,
-              color: activeTab === key ? '#a78bfa' : '#64748b',
-              fontWeight: activeTab === key ? 600 : 400, fontSize: 13, transition: 'all 0.2s',
-            }}>
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className={`tab-btn${activeTab === key ? ' active' : ''}`}
+            aria-selected={activeTab === key}
+          >
             {label}
           </button>
         ))}
       </div>
 
-      {/* File List */}
+      {/* File list */}
       <motion.div key={activeTab} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
         {activeTab === 'shares' ? (
           project.shareFiles?.length > 0
             ? project.shareFiles.map((f, i) => (
                 <FileRow key={f} name={f} projectId={id} type="share" index={i} />
               ))
-            : <p style={{ color: '#475569', fontSize: 14 }}>No share files found.</p>
+            : <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>No share files found.</p>
         ) : (
           <>
             {['metadata.json', 'matrix_A.npy', 'public_b.json'].map((f, i) => (
