@@ -108,7 +108,7 @@ export default function Navbar() {
           background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
           fontSize: '0.875rem', fontWeight: 500,
           color: active ? 'var(--text-primary)' : 'var(--text-muted)',
-          padding: '0.375rem 0.5rem', borderRadius: 'var(--radius-md)',
+          padding: '0.375rem 0.875rem', borderRadius: 'var(--radius-md)',
           transition: 'var(--transition)',
         }}
         onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)'; }}
@@ -151,7 +151,7 @@ export default function Navbar() {
 
         {/* Center links — desktop */}
         {!isMobile && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
             <CenterLink label="Home" onClick={() => scrollToSection('hero')} />
             <CenterLink to="/about" label="About" />
           </div>
