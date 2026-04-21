@@ -2,11 +2,12 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  signInWithPopup,
   signOut,
   onAuthStateChanged,
   updateProfile,
 } from 'firebase/auth';
-import { auth } from '../firebase/config';
+import { auth, googleProvider } from '../firebase/config';
 
 const AuthContext = createContext(null);
 
@@ -40,6 +41,11 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => signOut(auth);
 
+  const loginWithGoogle = async () => {
+    const cred = await signInWithPopup(auth, googleProvider);
+    return cred.user;
+  };
+
   /**
    * Get a fresh Firebase ID token for API requests.
    * Tokens expire after 1 hour — getIdToken(true) forces refresh.
@@ -50,7 +56,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, getToken }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, loginWithGoogle, getToken }}>
       {children}
     </AuthContext.Provider>
   );

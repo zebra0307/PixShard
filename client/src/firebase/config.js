@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getAnalytics, isSupported } from "firebase/analytics";
 
 const firebaseConfig = {
@@ -14,6 +14,13 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
+
+// Google provider — client ID ties to your Google Cloud OAuth credential
+export const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({
+  client_id: '904323960275-6j9japitl3pj74j8ia1gp154dqo0r434.apps.googleusercontent.com',
+  prompt: 'select_account',   // always show account chooser
+});
 
 // Analytics only in browser environments (not SSR/test)
 export const analytics = isSupported().then(yes => yes ? getAnalytics(app) : null);
