@@ -35,7 +35,7 @@ export default function DashboardPage() {
             My <span style={{ color: 'var(--color-primary)' }}>Shards</span>
           </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-            {user?.displayName || user?.email?.split('@')[0]}'s secret sharing projects
+            {user?.displayName || user?.email?.split('@')[0]}&apos;s secret sharing projects
           </p>
         </div>
         <motion.button

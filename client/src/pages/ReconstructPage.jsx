@@ -4,11 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api/axiosConfig';
 import toast from 'react-hot-toast';
 import {
-  Upload, ArrowLeft, Loader, CheckCircle, Image,
-  ChevronRight, ChevronLeft, Layers, Download
+  Upload, ArrowLeft, Loader, CheckCircle,
+  ChevronRight, ChevronLeft, Layers, Download, Shield, Cpu
 } from 'lucide-react';
 
-const STEPS = ['Public Data', 'Upload Shares', 'Indices', 'Reconstruct'];
+const STEPS = ['Scheme', 'Public Data', 'Upload Shares', 'Indices', 'Reconstruct'];
 
 const StepIndicator = ({ current }) => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 40, flexWrap: 'wrap' }}>
@@ -41,53 +41,77 @@ const StepIndicator = ({ current }) => (
 export default function ReconstructPage() {
   const navigate = useNavigate();
 
-  const [step, setStep]               = useState(0);
-  const [metaFile, setMetaFile]       = useState(null);   // metadata.json
-  const [pubBFile, setPubBFile]       = useState(null);   // public_b.json (essential only)
-  const [matAFile, setMatAFile]       = useState(null);   // matrix_A.npy (essential only)
-  const [shareFiles, setShareFiles]   = useState([]);     // participant share .npy files
-  const [indices, setIndices]         = useState('');     // "1,2,3"
-  const [loading, setLoading]         = useState(false);
-  const [resultUrl, setResultUrl]     = useState(null);   // blob URL of reconstructed image
-  const [scheme, setScheme]           = useState(null);   // detected from metadata.json
-
-  // ── Metadata upload handler ───────────────────────────────────────────────
-  const handleMetaUpload = (f) => {
-    if (!f) return;
-    setMetaFile(f);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const meta = JSON.parse(e.target.result);
-        setScheme(meta.scheme);
-        toast.success(`Detected: ${meta.scheme === 'essential' ? 'Essential' : 'Standard'} scheme (k=${meta.k})`);
-      } catch { toast.error('Invalid metadata.json'); }
-    };
-    reader.readAsText(f);
-  };
+  const [step, setStep] = useState(0);
+  const [selectedScheme, setSelectedScheme] = useState(null); // standard | essential
+  const [metaFile, setMetaFile] = useState(null); // metadata.npy (essential only)
+  const [pubBFile, setPubBFile] = useState(null); // public_b.npy (essential only)
+  const [matAFile, setMatAFile] = useState(null); // matrix_A.npy (essential only)
+  const [shareFiles, setShareFiles] = useState([]); // share_#.npy or participant_#.npy
+  const [indices, setIndices] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [resultUrl, setResultUrl] = useState(null);
 
   // ── Share files drop/select ───────────────────────────────────────────────
   const handleShareFiles = (files) => {
-    const arr = Array.from(files).filter(f => f.name.endsWith('.npy') || f.name.endsWith('.json'));
+    const arr = Array.from(files).filter(f => f.name.toLowerCase().endsWith('.npy'));
     setShareFiles(prev => {
       const names = prev.map(f => f.name);
       const newOnes = arr.filter(f => !names.includes(f.name));
       return [...prev, ...newOnes];
     });
+    if (!arr.length) {
+      toast.error('Please upload .npy share files');
+    }
+  };
+
+  const parseIndices = () =>
+    indices
+      .split(',')
+      .map((x) => parseInt(x.trim(), 10))
+      .filter((x) => Number.isInteger(x) && x > 0);
+
+  const validateStep = (currentStep) => {
+    if (currentStep === 0 && !selectedScheme) {
+      toast.error('Select a reconstruction scheme first');
+      return false;
+    }
+
+    if (currentStep === 1) {
+      if (selectedScheme === 'essential' && (!metaFile || !pubBFile || !matAFile)) {
+        toast.error('Essential SSS requires metadata.npy, public_b.npy, and matrix_A.npy');
+        return false;
+      }
+    }
+
+    if (currentStep === 2 && shareFiles.length === 0) {
+      toast.error('Upload at least one share file');
+      return false;
+    }
+
+    return true;
   };
 
   // ── Submit reconstruction ─────────────────────────────────────────────────
   const handleSubmit = async () => {
-    if (!metaFile) { toast.error('metadata.json is required'); return; }
+    if (!selectedScheme) { toast.error('Select a reconstruction scheme first'); return; }
+    if (selectedScheme === 'essential' && (!metaFile || !pubBFile || !matAFile)) {
+      toast.error('Essential SSS requires metadata.npy, public_b.npy, and matrix_A.npy');
+      return;
+    }
     if (shareFiles.length === 0) { toast.error('Upload at least k share files'); return; }
-    if (!indices.trim()) { toast.error('Enter participant indices (e.g. 1,2,3)'); return; }
+
+    const parsedIndices = parseIndices();
+    if (!parsedIndices.length) { toast.error('Enter participant indices (e.g. 1,2,3)'); return; }
 
     const fd = new FormData();
-    fd.append('metadata', metaFile);
-    if (pubBFile) fd.append('public_b', pubBFile);
-    if (matAFile) fd.append('matrix_A', matAFile);
+    fd.append('schemeType', selectedScheme === 'essential' ? 'Essential' : 'Standard');
+    if (selectedScheme === 'essential') {
+      fd.append('metadata', metaFile);
+      fd.append('public_b', pubBFile);
+      fd.append('matrix_A', matAFile);
+    }
     shareFiles.forEach(f => fd.append('shares', f));
-    fd.append('indices', indices);
+    fd.append('indices', parsedIndices.join(','));
 
     setLoading(true);
     try {
@@ -98,15 +122,45 @@ export default function ReconstructPage() {
       });
       const url = URL.createObjectURL(new Blob([data], { type: 'image/png' }));
       setResultUrl(url);
-      setStep(3);
+      setStep(4);
       toast.success('Image reconstructed successfully!');
     } catch (err) {
-      const text = await err.response?.data?.text?.();
-      const msg = text ? JSON.parse(text)?.message : 'Reconstruction failed';
-      toast.error(msg || 'Reconstruction failed');
+      let msg = 'Reconstruction failed';
+      try {
+        const payload = err.response?.data;
+        if (payload instanceof Blob) {
+          const text = await payload.text();
+          try {
+            msg = JSON.parse(text)?.message || text || msg;
+          } catch {
+            msg = text || msg;
+          }
+        } else if (payload?.message) {
+          msg = payload.message;
+        }
+      } catch {
+        // Keep fallback message
+      }
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
+  };
+
+  const resetFlow = () => {
+    setStep(0);
+    setSelectedScheme(null);
+    setMetaFile(null);
+    setPubBFile(null);
+    setMatAFile(null);
+    setShareFiles([]);
+    setIndices('');
+    setResultUrl(null);
+  };
+
+  const nextStep = () => {
+    if (!validateStep(step)) return;
+    setStep((s) => s + 1);
   };
 
   return (
@@ -134,81 +188,122 @@ export default function ReconstructPage() {
         <div className="glass" style={{ borderRadius: 20, padding: 36 }}>
           <AnimatePresence mode="wait">
 
-            {/* Step 0 — Public Data */}
+            {/* Step 0 — Scheme selection */}
             {step === 0 && (
+              <motion.div key="scheme" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                <p style={{ fontWeight: 600, color: '#94a3b8', fontSize: 13, marginBottom: 20 }}>CHOOSE RECONSTRUCTION SCHEME</p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                  <motion.button
+                    whileHover={{ scale: 1.01 }}
+                    onClick={() => setSelectedScheme('standard')}
+                    style={{
+                      padding: 20,
+                      borderRadius: 12,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      border: `1px solid ${selectedScheme === 'standard' ? 'var(--color-primary)' : 'var(--border-subtle)'}`,
+                      background: selectedScheme === 'standard' ? 'rgba(124,58,237,0.08)' : 'var(--bg-soft)',
+                      color: 'var(--text-secondary)',
+                    }}
+                  >
+                    <Cpu size={20} style={{ marginBottom: 10, color: selectedScheme === 'standard' ? 'var(--color-primary)' : 'var(--text-faint)' }} />
+                    <p style={{ fontWeight: 700, marginBottom: 4 }}>Standard (k,n) SSS</p>
+                    <p style={{ fontSize: 12, color: '#64748b' }}>Needs only share_*.npy files</p>
+                  </motion.button>
+
+                  <motion.button
+                    whileHover={{ scale: 1.01 }}
+                    onClick={() => setSelectedScheme('essential')}
+                    style={{
+                      padding: 20,
+                      borderRadius: 12,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      border: `1px solid ${selectedScheme === 'essential' ? 'var(--color-primary)' : 'var(--border-subtle)'}`,
+                      background: selectedScheme === 'essential' ? 'rgba(124,58,237,0.08)' : 'var(--bg-soft)',
+                      color: 'var(--text-secondary)',
+                    }}
+                  >
+                    <Shield size={20} style={{ marginBottom: 10, color: selectedScheme === 'essential' ? 'var(--color-primary)' : 'var(--text-faint)' }} />
+                    <p style={{ fontWeight: 700, marginBottom: 4 }}>Essential (t,k,n) SSS</p>
+                    <p style={{ fontSize: 12, color: '#64748b' }}>Needs metadata.npy + public_b.npy + matrix_A.npy + participant shares</p>
+                  </motion.button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Step 1 — Public Data */}
+            {step === 1 && (
               <motion.div key="meta" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                 <p style={{ fontWeight: 600, color: '#94a3b8', fontSize: 13, marginBottom: 20 }}>UPLOAD PUBLIC DATA FILES</p>
 
-                {/* metadata.json — required */}
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#a78bfa', marginBottom: 6 }}>
-                    metadata.json <span style={{ color: '#ef4444' }}>*</span>
-                  </label>
-                  <label style={{
-                    display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px',
-                    borderRadius: 10, border: `1px dashed ${metaFile ? '#22c55e' : 'rgba(255,255,255,0.15)'}`,
-                    cursor: 'pointer', background: metaFile ? 'rgba(34,197,94,0.05)' : 'transparent',
-                    transition: 'all 0.2s',
-                  }}>
-                    <Upload size={16} color={metaFile ? '#22c55e' : '#64748b'} />
-                    <span style={{ fontSize: 13, color: metaFile ? '#22c55e' : '#64748b' }}>
-                      {metaFile ? metaFile.name : 'Click to upload metadata.json'}
-                    </span>
-                    <input type="file" accept=".json" style={{ display: 'none' }} onChange={e => handleMetaUpload(e.target.files[0])} />
-                  </label>
-                </div>
+                {selectedScheme === 'essential' ? (
+                  <>
+                    <div style={{ marginBottom: 16 }}>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#a78bfa', marginBottom: 6 }}>
+                        metadata.npy <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
+                      <label style={{
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '12px 16px', borderRadius: 10,
+                        border: `1px dashed ${metaFile ? '#22c55e' : 'rgba(255,255,255,0.15)'}`,
+                        cursor: 'pointer',
+                        background: metaFile ? 'rgba(34,197,94,0.05)' : 'transparent',
+                      }}>
+                        <Upload size={16} color={metaFile ? '#22c55e' : '#475569'} />
+                        <span style={{ fontSize: 13, color: metaFile ? '#22c55e' : '#475569' }}>
+                          {metaFile ? metaFile.name : 'Click to upload metadata.npy'}
+                        </span>
+                        <input type="file" accept=".npy" style={{ display: 'none' }} onChange={e => setMetaFile(e.target.files[0])} />
+                      </label>
+                    </div>
 
-                {/* public_b.json — essential only */}
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#94a3b8', marginBottom: 6 }}>
-                    public_b.json <span style={{ color: '#64748b', fontWeight: 400 }}>(Essential scheme only)</span>
-                  </label>
-                  <label style={{
-                    display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px',
-                    borderRadius: 10, border: `1px dashed ${pubBFile ? '#22c55e' : 'rgba(255,255,255,0.1)'}`,
-                    cursor: 'pointer',
-                  }}>
-                    <Upload size={16} color={pubBFile ? '#22c55e' : '#475569'} />
-                    <span style={{ fontSize: 13, color: pubBFile ? '#22c55e' : '#475569' }}>
-                      {pubBFile ? pubBFile.name : 'Click to upload public_b.json'}
-                    </span>
-                    <input type="file" accept=".json" style={{ display: 'none' }} onChange={e => setPubBFile(e.target.files[0])} />
-                  </label>
-                </div>
+                    <div style={{ marginBottom: 16 }}>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#a78bfa', marginBottom: 6 }}>
+                        public_b.npy <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
+                      <label style={{
+                        display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px',
+                        borderRadius: 10, border: `1px dashed ${pubBFile ? '#22c55e' : 'rgba(255,255,255,0.15)'}`,
+                        cursor: 'pointer',
+                        background: pubBFile ? 'rgba(34,197,94,0.05)' : 'transparent',
+                      }}>
+                        <Upload size={16} color={pubBFile ? '#22c55e' : '#475569'} />
+                        <span style={{ fontSize: 13, color: pubBFile ? '#22c55e' : '#475569' }}>
+                          {pubBFile ? pubBFile.name : 'Click to upload public_b.npy'}
+                        </span>
+                        <input type="file" accept=".npy" style={{ display: 'none' }} onChange={e => setPubBFile(e.target.files[0])} />
+                      </label>
+                    </div>
 
-                {/* matrix_A.npy — essential only */}
-                <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#94a3b8', marginBottom: 6 }}>
-                    matrix_A.npy <span style={{ color: '#64748b', fontWeight: 400 }}>(Essential scheme only)</span>
-                  </label>
-                  <label style={{
-                    display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px',
-                    borderRadius: 10, border: `1px dashed ${matAFile ? '#22c55e' : 'rgba(255,255,255,0.1)'}`,
-                    cursor: 'pointer',
-                  }}>
-                    <Upload size={16} color={matAFile ? '#22c55e' : '#475569'} />
-                    <span style={{ fontSize: 13, color: matAFile ? '#22c55e' : '#475569' }}>
-                      {matAFile ? matAFile.name : 'Click to upload matrix_A.npy'}
-                    </span>
-                    <input type="file" accept=".npy" style={{ display: 'none' }} onChange={e => setMatAFile(e.target.files[0])} />
-                  </label>
-                </div>
-
-                {scheme && (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                    style={{
-                      marginTop: 16, padding: '10px 14px', borderRadius: 8,
-                      background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.2)',
-                      fontSize: 12, color: '#a78bfa',
-                    }}>
-                    ✓ Detected scheme: <strong>{scheme}</strong>
-                  </motion.div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#a78bfa', marginBottom: 6 }}>
+                        matrix_A.npy <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
+                      <label style={{
+                        display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px',
+                        borderRadius: 10, border: `1px dashed ${matAFile ? '#22c55e' : 'rgba(255,255,255,0.15)'}`,
+                        cursor: 'pointer',
+                        background: matAFile ? 'rgba(34,197,94,0.05)' : 'transparent',
+                      }}>
+                        <Upload size={16} color={matAFile ? '#22c55e' : '#475569'} />
+                        <span style={{ fontSize: 13, color: matAFile ? '#22c55e' : '#475569' }}>
+                          {matAFile ? matAFile.name : 'Click to upload matrix_A.npy'}
+                        </span>
+                        <input type="file" accept=".npy" style={{ display: 'none' }} onChange={e => setMatAFile(e.target.files[0])} />
+                      </label>
+                    </div>
+                  </>
+                ) : (
+                  <p style={{ fontSize: 12, color: '#64748b', marginTop: 14 }}>
+                    Standard (k,n) reconstruction does not require any public metadata files.
+                  </p>
                 )}
               </motion.div>
             )}
 
-            {/* Step 1 — Upload Shares */}
-            {step === 1 && (
+            {/* Step 2 — Upload Shares */}
+            {step === 2 && (
               <motion.div key="shares" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                 <p style={{ fontWeight: 600, color: '#94a3b8', fontSize: 13, marginBottom: 20 }}>UPLOAD YOUR SHARE FILES (.npy)</p>
 
@@ -223,7 +318,11 @@ export default function ReconstructPage() {
                   }}>
                   <Upload size={32} color="#475569" style={{ marginBottom: 12 }} />
                   <p style={{ fontWeight: 600, color: '#94a3b8', marginBottom: 4 }}>Drop .npy share files here</p>
-                  <p style={{ fontSize: 12, color: '#475569' }}>or click to browse — select multiple</p>
+                  <p style={{ fontSize: 12, color: '#475569' }}>
+                    {selectedScheme === 'essential'
+                      ? 'Use participant_#.npy files'
+                      : 'Use share_#.npy files'}
+                  </p>
                   <input type="file" accept=".npy" multiple style={{ display: 'none' }}
                     onChange={e => handleShareFiles(e.target.files)} />
                 </label>
@@ -249,8 +348,8 @@ export default function ReconstructPage() {
               </motion.div>
             )}
 
-            {/* Step 2 — Indices */}
-            {step === 2 && (
+            {/* Step 3 — Indices */}
+            {step === 3 && (
               <motion.div key="indices" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                 <p style={{ fontWeight: 600, color: '#94a3b8', fontSize: 13, marginBottom: 20 }}>SPECIFY PARTICIPANT INDICES</p>
 
@@ -273,7 +372,7 @@ export default function ReconstructPage() {
                 <div className="glass" style={{ borderRadius: 10, padding: 14 }}>
                   <p style={{ fontSize: 12, color: '#64748b' }}>
                     Files loaded: <strong style={{ color: '#e2e8f0' }}>{shareFiles.length}</strong> share{shareFiles.length !== 1 ? 's' : ''}
-                    {scheme === 'essential' && <span> · Essential scheme requires ALL essential participants (1..t)</span>}
+                    {selectedScheme === 'essential' && <span> · Essential scheme requires ALL essential participants (1..t)</span>}
                   </p>
                 </div>
 
@@ -287,8 +386,8 @@ export default function ReconstructPage() {
               </motion.div>
             )}
 
-            {/* Step 3 — Result */}
-            {step === 3 && (
+            {/* Step 4 — Result */}
+            {step === 4 && (
               <motion.div key="result" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
                 <div style={{ textAlign: 'center' }}>
                   <motion.div
@@ -339,7 +438,7 @@ export default function ReconstructPage() {
           </AnimatePresence>
 
           {/* Navigation */}
-          {step < 3 && (
+          {step < 4 && (
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 32 }}>
               <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                 onClick={() => setStep(s => s - 1)} disabled={step === 0}
@@ -352,9 +451,9 @@ export default function ReconstructPage() {
                 <ChevronLeft size={15} /> Back
               </motion.button>
 
-              {step < 2 ? (
+              {step < 3 ? (
                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                  onClick={() => setStep(s => s + 1)} disabled={step === 0 && !metaFile}
+                  onClick={nextStep}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 6, padding: '10px 24px',
                     borderRadius: 10, border: 'none', cursor: 'pointer',
@@ -378,10 +477,10 @@ export default function ReconstructPage() {
             </div>
           )}
 
-          {step === 3 && (
+          {step === 4 && (
             <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 28 }}>
               <motion.button whileHover={{ scale: 1.02 }}
-                onClick={() => { setStep(0); setMetaFile(null); setPubBFile(null); setMatAFile(null); setShareFiles([]); setIndices(''); setResultUrl(null); setScheme(null); }}
+                onClick={resetFlow}
                 style={{
                   padding: '10px 22px', borderRadius: 10, background: 'rgba(255,255,255,0.05)',
                   border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', cursor: 'pointer', fontSize: 13,

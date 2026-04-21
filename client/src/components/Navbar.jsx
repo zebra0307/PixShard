@@ -53,6 +53,23 @@ const DropItem = ({ icon, label, onClick, danger }) => (
   </button>
 );
 
+const CenterNavLink = ({ active, label, onClick }) => (
+  <button
+    onClick={onClick}
+    style={{
+      background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+      fontSize: '0.875rem', fontWeight: 500,
+      color: active ? 'var(--text-primary)' : 'var(--text-muted)',
+      padding: '0.375rem 0.875rem', borderRadius: 'var(--radius-md)',
+      transition: 'var(--transition)',
+    }}
+    onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)'; }}
+    onMouseLeave={e => { e.currentTarget.style.color = active ? 'var(--text-primary)' : 'var(--text-muted)'; }}
+  >
+    {label}
+  </button>
+);
+
 /* ── Navbar ───────────────────────────────────────────────────────────────── */
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -74,9 +91,6 @@ export default function Navbar() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // Close mobile menu on route change
-  useEffect(() => { setMobile(false); setDropdown(false); }, [location.pathname]);
-
   // Scroll shadow
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -97,26 +111,7 @@ export default function Navbar() {
     if (location.pathname !== '/') { navigate('/'); setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' }), 100); }
     else { document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' }); }
     setMobile(false);
-  };
-
-  const CenterLink = ({ to, label, onClick }) => {
-    const active = to ? location.pathname === to : false;
-    return (
-      <button
-        onClick={onClick || (() => navigate(to))}
-        style={{
-          background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-          fontSize: '0.875rem', fontWeight: 500,
-          color: active ? 'var(--text-primary)' : 'var(--text-muted)',
-          padding: '0.375rem 0.875rem', borderRadius: 'var(--radius-md)',
-          transition: 'var(--transition)',
-        }}
-        onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)'; }}
-        onMouseLeave={e => { e.currentTarget.style.color = active ? 'var(--text-primary)' : 'var(--text-muted)'; }}
-      >
-        {label}
-      </button>
-    );
+    setDropdown(false);
   };
 
   return (
@@ -152,8 +147,8 @@ export default function Navbar() {
         {/* Center links — desktop */}
         {!isMobile && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-            <CenterLink label="Home" onClick={() => scrollToSection('hero')} />
-            <CenterLink to="/about" label="About" />
+            <CenterNavLink active={location.pathname === '/'} label="Home" onClick={() => scrollToSection('hero')} />
+            <CenterNavLink active={location.pathname === '/about'} label="About" onClick={() => navigate('/about')} />
           </div>
         )}
 

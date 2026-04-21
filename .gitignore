@@ -11,6 +11,9 @@ desktop.ini
 .idea/
 .vscode/settings.json
 
+#logic
+./Secret_Sharing_schemes
+
 # ── Node ─────────────────────────────────────────
 node_modules/
 npm-debug.log*

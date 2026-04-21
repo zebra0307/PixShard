@@ -99,12 +99,12 @@ export default function AboutPage() {
             color: 'var(--text-primary)', lineHeight: 1.15, marginBottom: '1.25rem',
           }}>
             Cryptographic image sharing<br />
-            <span style={{ color: 'var(--color-primary)' }}>built on Shamir's schemes</span>
+            <span style={{ color: 'var(--color-primary)' }}>built on Shamir&apos;s schemes</span>
           </h1>
 
           <p style={{ fontSize: '1.0625rem', color: 'var(--text-muted)', lineHeight: 1.65, maxWidth: 580, margin: '0 auto 2rem' }}>
             PixShard implements the <strong style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>(k, n)</strong> Standard
-            and <strong style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>(t, k, n)</strong> Essential Shamir's Secret
+            and <strong style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>(t, k, n)</strong> Essential Shamir&apos;s Secret
             Sharing schemes, enabling lossless, provably secure image splitting and reconstruction.
           </p>
 

@@ -1,39 +1,6 @@
 require('dotenv').config();
-const express = require('express');
 const mongoose = require('mongoose');
-const cors = require('cors');
-const path = require('path');
-
-const app = express();
-
-// ── Middleware ────────────────────────────────────────────────────────────────
-const ALLOWED_ORIGINS = [
-  process.env.CLIENT_URL,
-  'http://localhost:5173',
-  'http://localhost:5174',
-].filter(Boolean);
-
-app.use(cors({
-  origin: (origin, cb) => {
-    // Allow non-browser requests (Postman, Render health checks) and whitelisted origins
-    if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
-    cb(new Error(`CORS: origin ${origin} not allowed`));
-  },
-  credentials: true,
-}));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// ── Static file serving (individual share downloads) ─────────────────────────
-app.use('/images', express.static(path.join(__dirname, 'images')));
-app.use('/public_datas', express.static(path.join(__dirname, 'public_datas')));
-
-// ── Routes ────────────────────────────────────────────────────────────────────
-app.use('/api/auth', require('./routes/authRoutes'));
-app.use('/api/share', require('./routes/shareRoutes'));
-
-// ── Health check ──────────────────────────────────────────────────────────────
-app.get('/api/health', (_req, res) => res.json({ status: 'PixShard API running' }));
+const app = require('./app');
 
 // ── MongoDB connection ────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;

@@ -36,11 +36,17 @@ const LOGIC_DIR  = process.env.LOGIC_DIR
   : path.resolve(API_ROOT, './logic');
 const IMAGES_DIR = path.join(API_ROOT, 'images');
 const PUBLIC_DIR = path.join(API_ROOT, 'public_datas');
-const ENCRYPT_SCRIPT = path.join(LOGIC_DIR, 'encrypt.py');
+const STANDARD_ENCRYPT_SCRIPT = path.join(LOGIC_DIR, 'standard_encrypt.py');
+const ESSENTIAL_ENCRYPT_SCRIPT = path.join(LOGIC_DIR, 'essential_encrypt.py');
+const STANDARD_DECRYPT_SCRIPT = path.join(LOGIC_DIR, 'standard_decrypt.py');
+const ESSENTIAL_DECRYPT_SCRIPT = path.join(LOGIC_DIR, 'essential_decrypt.py');
 
 // Log resolved paths on startup (helps debug)
 console.log('[PixShard] LOGIC_DIR resolved to:', LOGIC_DIR);
-console.log('[PixShard] encrypt.py exists:', fs.existsSync(ENCRYPT_SCRIPT));
+console.log('[PixShard] standard_encrypt.py exists:', fs.existsSync(STANDARD_ENCRYPT_SCRIPT));
+console.log('[PixShard] essential_encrypt.py exists:', fs.existsSync(ESSENTIAL_ENCRYPT_SCRIPT));
+console.log('[PixShard] standard_decrypt.py exists:', fs.existsSync(STANDARD_DECRYPT_SCRIPT));
+console.log('[PixShard] essential_decrypt.py exists:', fs.existsSync(ESSENTIAL_DECRYPT_SCRIPT));
 
 
 // ── Helper: ZIP a directory and pipe to response ──────────────────────────────
@@ -66,6 +72,8 @@ router.post('/create', protect, upload.single('image'), async (req, res) => {
 
   if (!schemeType || !kNum || !nNum)
     return res.status(400).json({ message: 'schemeType, k, and n are required' });
+  if (!['Standard', 'Essential'].includes(schemeType))
+    return res.status(400).json({ message: 'schemeType must be Standard or Essential' });
   if (schemeType === 'Essential' && !tNum)
     return res.status(400).json({ message: 't is required for Essential scheme' });
 
@@ -86,8 +94,9 @@ router.post('/create', protect, upload.single('image'), async (req, res) => {
     status: 'processing',
   });
 
-  // Build Python args (isEssential used inside try block)
+  // Select Python script based on scheme.
   const isEssential = schemeType === 'Essential';
+  const encryptScript = isEssential ? ESSENTIAL_ENCRYPT_SCRIPT : STANDARD_ENCRYPT_SCRIPT;
 
   try {
     // ── Fix: rename multer temp file to include original extension ───────────
@@ -96,8 +105,7 @@ router.post('/create', protect, upload.single('image'), async (req, res) => {
     const renamedPath = req.file.path + origExt;
     fs.renameSync(req.file.path, renamedPath);
 
-    await runPythonScript(ENCRYPT_SCRIPT, [
-      '--type',        isEssential ? 't,k,n' : 'k,n',
+    await runPythonScript(encryptScript, [
       '--input',       renamedPath,
       '--shares_dir',  sharesDir,
       '--public_dir',  pubDir,
@@ -108,6 +116,26 @@ router.post('/create', protect, upload.single('image'), async (req, res) => {
 
     // Collect generated share filenames
     const shareFiles = fs.readdirSync(sharesDir);
+
+    // Ensure output artifacts are complete to avoid future reconstruction failures.
+    const requiredPublicFiles = isEssential
+      ? ['metadata.npy', 'public_b.npy', 'matrix_A.npy']
+      : [];
+
+    for (const filename of requiredPublicFiles) {
+      if (!fs.existsSync(path.join(pubDir, filename))) {
+        throw new Error(`Encryption output missing required file: ${filename}`);
+      }
+    }
+
+    if (!shareFiles.length) {
+      throw new Error('Encryption output missing share files');
+    }
+
+    const expectedPrefix = isEssential ? 'participant_' : 'share_';
+    if (shareFiles.some((name) => !name.startsWith(expectedPrefix) || !name.endsWith('.npy'))) {
+      throw new Error(`Unexpected share filenames for ${schemeType} scheme`);
+    }
 
     // Update project as ready
     project.shareFiles = shareFiles;
@@ -203,8 +231,9 @@ router.get('/download-file/:id/:filename', protect, async (req, res) => {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // POST /api/share/reconstruct
 // Body (multipart):
-//   metadata  — metadata.json
-//   public_b  — public_b.json  (essential)
+//   schemeType — Standard | Essential
+//   metadata  — metadata.npy  (essential)
+//   public_b  — public_b.npy  (essential)
 //   matrix_A  — matrix_A.npy  (essential)
 //   shares[]  — participant .npy files
 //   indices   — "1,2,3"
@@ -234,22 +263,59 @@ router.post(
     };
 
     try {
-      // Move metadata.json to pubDir
-      if (!req.files?.metadata?.[0])
-        return res.status(400).json({ message: 'metadata.json is required' });
-      fs.renameSync(req.files.metadata[0].path, path.join(pubDir, 'metadata.json'));
+      const { schemeType } = req.body;
+      if (!['Standard', 'Essential'].includes(schemeType)) {
+        return res.status(400).json({ message: 'schemeType must be Standard or Essential' });
+      }
 
-      // Move public_b.json if provided
-      if (req.files?.public_b?.[0])
-        fs.renameSync(req.files.public_b[0].path, path.join(pubDir, 'public_b.json'));
+      const isEssential = schemeType === 'Essential';
 
-      // Move matrix_A.npy if provided
-      if (req.files?.matrix_A?.[0])
+      if (isEssential) {
+        if (!req.files?.metadata?.[0] || !req.files?.public_b?.[0] || !req.files?.matrix_A?.[0]) {
+          return res.status(400).json({
+            message: 'Essential reconstruction requires metadata.npy, public_b.npy, and matrix_A.npy',
+          });
+        }
+
+        const metadataName = req.files.metadata[0].originalname.toLowerCase();
+        const publicBName = req.files.public_b[0].originalname.toLowerCase();
+        const matrixAName = req.files.matrix_A[0].originalname.toLowerCase();
+
+        if (!metadataName.endsWith('.npy') || !publicBName.endsWith('.npy') || !matrixAName.endsWith('.npy')) {
+          return res.status(400).json({ message: 'Essential public files must be .npy files' });
+        }
+
+        fs.renameSync(req.files.metadata[0].path, path.join(pubDir, 'metadata.npy'));
+        fs.renameSync(req.files.public_b[0].path, path.join(pubDir, 'public_b.npy'));
         fs.renameSync(req.files.matrix_A[0].path, path.join(pubDir, 'matrix_A.npy'));
+      } else {
+        // Standard scheme does not use public metadata files.
+        ['metadata', 'public_b', 'matrix_A'].forEach((fieldName) => {
+          const file = req.files?.[fieldName]?.[0];
+          if (file?.path && fs.existsSync(file.path)) {
+            fs.unlinkSync(file.path);
+          }
+        });
+      }
 
       // Move all share files, restoring their original names
       if (!req.files?.shares?.length)
         return res.status(400).json({ message: 'At least one share file is required' });
+
+      const hasInvalidShare = req.files.shares.some((shareFile) => !shareFile.originalname.toLowerCase().endsWith('.npy'));
+      if (hasInvalidShare) {
+        return res.status(400).json({ message: 'Share files must be .npy files' });
+      }
+
+      const expectedShareRegex = isEssential ? /^participant_\d+\.npy$/i : /^share_\d+\.npy$/i;
+      const hasUnexpectedShareName = req.files.shares.some((shareFile) => !expectedShareRegex.test(shareFile.originalname));
+      if (hasUnexpectedShareName) {
+        return res.status(400).json({
+          message: isEssential
+            ? 'Essential share files must be named participant_<index>.npy'
+            : 'Standard share files must be named share_<index>.npy',
+        });
+      }
 
       for (const shareFile of req.files.shares) {
         const dest = path.join(sharesDir, shareFile.originalname);
@@ -259,11 +325,21 @@ router.post(
       const { indices } = req.body;
       if (!indices) return res.status(400).json({ message: 'indices are required' });
 
-      const DECRYPT_SCRIPT = path.join(LOGIC_DIR, 'decrypt.py');
-      await runPythonScript(DECRYPT_SCRIPT, [
+      const parsedIndices = String(indices)
+        .split(',')
+        .map((x) => parseInt(x.trim(), 10))
+        .filter((x) => Number.isInteger(x) && x > 0);
+
+      if (!parsedIndices.length) {
+        return res.status(400).json({ message: 'indices must be comma-separated positive integers' });
+      }
+
+      const decryptScript = isEssential ? ESSENTIAL_DECRYPT_SCRIPT : STANDARD_DECRYPT_SCRIPT;
+
+      await runPythonScript(decryptScript, [
         '--shares_dir', sharesDir,
         '--public_dir', pubDir,
-        '--indices',    indices,
+        '--indices',    parsedIndices.join(','),
         '--output',     outFile,
       ]);
 
