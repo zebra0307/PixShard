@@ -65,7 +65,7 @@ export default function LandingPage() {
     <main style={{ minHeight: '100vh', overflowX: 'hidden' }}>
 
       {/* ── Hero ───────────────────────────────────────────────────────── */}
-      <section style={{
+      <section id="hero" style={{
         padding: 'clamp(5rem, 12vh, 7rem) 1.5rem 5rem',
         maxWidth: 700,
         margin: '0 auto',
