@@ -22,12 +22,16 @@ api.interceptors.request.use(async (config) => {
 });
 
 // On 401: Firebase token expired — sign out and redirect to login
+// BUT: skip redirect for blob requests (file downloads) so the caller can handle the error
 api.interceptors.response.use(
   (res) => res,
-  (err) => {
+  async (err) => {
     if (err.response?.status === 401) {
-      auth.signOut();
-      window.location.href = '/login';
+      const isBlob = err.config?.responseType === 'blob';
+      if (!isBlob) {
+        await auth.signOut();
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(err);
   }

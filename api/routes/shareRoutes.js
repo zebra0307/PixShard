@@ -166,16 +166,8 @@ router.get('/', protect, async (req, res) => {
 });
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// GET /api/share/:id  — single project
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-router.get('/:id', protect, async (req, res) => {
-  const project = await Project.findOne({ _id: req.params.id, ownerID: req.user._id });
-  if (!project) return res.status(404).json({ message: 'Project not found' });
-  res.json(project);
-});
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // GET /api/share/download-shares/:id  — ZIP all share files
+// MUST be before /:id wildcard to avoid Express swallowing the path segment
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 router.get('/download-shares/:id', protect, async (req, res) => {
   const project = await Project.findOne({ _id: req.params.id, ownerID: req.user._id });
@@ -186,12 +178,42 @@ router.get('/download-shares/:id', protect, async (req, res) => {
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // GET /api/share/download-public/:id  — ZIP public data directory
+// MUST be before /:id wildcard
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 router.get('/download-public/:id', protect, async (req, res) => {
   const project = await Project.findOne({ _id: req.params.id, ownerID: req.user._id });
   if (!project) return res.status(404).json({ message: 'Project not found' });
   if (project.status !== 'ready') return res.status(400).json({ message: 'Project not ready' });
   streamZip(res, project.publicDataDir, `pixshard_public_${req.params.id}.zip`);
+});
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// GET /api/share/download-file/:id/:filename  — individual file download
+// Searches both sharesDir and publicDataDir for the requested filename
+// MUST be before /:id wildcard
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+router.get('/download-file/:id/:filename', protect, async (req, res) => {
+  const project = await Project.findOne({ _id: req.params.id, ownerID: req.user._id });
+  if (!project) return res.status(404).json({ message: 'Project not found' });
+
+  const filename = path.basename(req.params.filename); // sanitize
+  const candidates = [
+    path.join(project.sharesDir, filename),
+    path.join(project.publicDataDir, filename),
+  ];
+  const found = candidates.find(fs.existsSync);
+  if (!found) return res.status(404).json({ message: 'File not found' });
+
+  res.download(found, filename);
+});
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// GET /api/share/:id  — single project (wildcard — MUST be after all named GET routes)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+router.get('/:id', protect, async (req, res) => {
+  const project = await Project.findOne({ _id: req.params.id, ownerID: req.user._id });
+  if (!project) return res.status(404).json({ message: 'Project not found' });
+  res.json(project);
 });
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -207,25 +229,6 @@ router.delete('/:id', protect, async (req, res) => {
   });
   await project.deleteOne();
   res.json({ message: 'Project deleted' });
-});
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// GET /api/share/download-file/:id/:filename  — individual file download
-// Searches both sharesDir and publicDataDir for the requested filename
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-router.get('/download-file/:id/:filename', protect, async (req, res) => {
-  const project = await Project.findOne({ _id: req.params.id, ownerID: req.user._id });
-  if (!project) return res.status(404).json({ message: 'Project not found' });
-
-  const filename = path.basename(req.params.filename); // sanitize
-  const candidates = [
-    path.join(project.sharesDir, filename),
-    path.join(project.publicDataDir, filename),
-  ];
-  const found = candidates.find(fs.existsSync);
-  if (!found) return res.status(404).json({ message: 'File not found' });
-
-  res.download(found, filename);
 });
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

@@ -14,16 +14,32 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || '';
 const authDownload = async (url, filename) => {
   try {
     const { data } = await api.get(url, { responseType: 'blob' });
-    const blobUrl = URL.createObjectURL(data);
+
+    // Force download: use a temporary object URL and trigger click synchronously
+    const blobUrl = URL.createObjectURL(new Blob([data]));
     const a = document.createElement('a');
+    a.style.display = 'none';
     a.href = blobUrl;
-    a.download = filename;
+    a.setAttribute('download', filename); // must use setAttribute for cross-browser
+    a.removeAttribute('target');          // prevent new-tab behavior
     document.body.appendChild(a);
     a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
-  } catch {
-    toast.error('Download failed — please try again');
+    // Cleanup after a short delay to allow the download to start
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    }, 5000);
+  } catch (err) {
+    // The API returns JSON errors as a Blob when responseType:'blob' — parse it
+    let msg = 'Download failed — please try again';
+    try {
+      const blob = err.response?.data;
+      if (blob instanceof Blob) {
+        const text = await blob.text();
+        msg = JSON.parse(text)?.message || msg;
+      }
+    } catch { /* keep fallback */ }
+    toast.error(msg);
   }
 };
 

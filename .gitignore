@@ -24,12 +24,18 @@ package-lock.json
 client/dist/
 client/.env.local
 
-# ── API secrets & runtime-generated data ─────────
+# ── API secrets ──────────────────────────────────
 api/.env
 api/.env.local
-api/uploads/
-api/images/
-api/public_datas/
+
+# ── Runtime-generated data dirs (keep .gitkeep) ──
+# Ignore all contents but keep the empty-dir placeholder
+api/uploads/*
+!api/uploads/.gitkeep
+api/images/*
+!api/images/.gitkeep
+api/public_datas/*
+!api/public_datas/.gitkeep
 
 # Firebase service account key (contains private key — NEVER commit)
 api/serviceAccountKey.json
